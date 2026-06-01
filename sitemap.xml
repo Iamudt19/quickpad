@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <!-- Replace with your actual live Vercel URL -->
+    <loc>https://quickpad-b4e5a.vercel.app/</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

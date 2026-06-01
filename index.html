@@ -787,6 +787,7 @@
     let currentLocalValue = "";
     let skipNextFirebaseUpdate = false;
     let unsyncedLocalChanges = false;
+    let offlineTimeout = null;
 
     // DOM Elements
     const homeView = document.getElementById("home-view");
@@ -898,6 +899,13 @@
     function loadPad(padId) {
       currentPadId = padId;
       document.title = `QuickPad — /${padId}`;
+      
+      // Clear any pending offline banners from previous pads
+      if (offlineTimeout) {
+        clearTimeout(offlineTimeout);
+        offlineTimeout = null;
+      }
+      offlineBanner.classList.remove("show");
       
       homeView.classList.add("hidden");
       padView.classList.remove("hidden");
@@ -1055,11 +1063,20 @@
           const connectedRef = ref(db, ".info/connected");
           onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
+              if (offlineTimeout) {
+                clearTimeout(offlineTimeout);
+                offlineTimeout = null;
+              }
               offlineBanner.classList.remove("show");
               if (!isSaving) updateSyncStatus("synced");
             } else {
-              offlineBanner.classList.add("show");
-              updateSyncStatus("offline");
+              // Wait 3 seconds before showing the offline banner to prevent flashing during load/transitions
+              if (!offlineTimeout) {
+                offlineTimeout = setTimeout(() => {
+                  offlineBanner.classList.add("show");
+                  updateSyncStatus("offline");
+                }, 3000);
+              }
             }
           });
         })

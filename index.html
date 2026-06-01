@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickPad — Minimalist Real-time Shared Notepad</title>
+  <meta name="description" content="QuickPad is a minimalist real-time shared notepad. Type instantly, share a URL to collaborate, and sync changes across devices in real-time. No sign-up, no login.">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ----------------------------------------------------
+       1. DESIGN SYSTEM & VARIABLE DEFINITIONS
+       ---------------------------------------------------- */
+    :root {
+      /* Typography */
+      --font-ui: 'DM Sans', system-ui, -apple-system, sans-serif;
+      --font-logo: 'Outfit', sans-serif;
+      --font-editor: 'JetBrains Mono', Courier New, monospace;
+
+      /* Transition Speed */
+      --transition-speed: 0.25s;
+    }
+
+    /* Light Theme (Default) */
+    .theme-light {
+      --bg-base: #ffffff;
+      --bg-workspace: #fcfcfd;
+      --bg-card: rgba(255, 255, 255, 0.85);
+      --bg-input: #f1f5f9;
+      --bg-topbar: #ffffff;
+      --bg-bottombar: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --border-color: #e2e8f0;
+      --accent-color: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+      --glow-gradient: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.06) 0%, rgba(255, 255, 255, 0) 60%);
+      --logo-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    }
+
+    /* Dark Theme */
+    .theme-dark {
+      --bg-base: #090d16;
+      --bg-workspace: #0d121f;
+      --bg-card: rgba(13, 18, 31, 0.8);
+      --bg-input: #1e293b;
+      --bg-topbar: #090d16;
+      --bg-bottombar: #090d16;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border-color: #1e293b;
+      --accent-color: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-light: #172554;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+      --glow-gradient: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, rgba(9, 13, 22, 0) 65%);
+      --logo-gradient: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    }
+
+    /* ----------------------------------------------------
+       2. RESET & BASE STYLING
+       ---------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Smooth Fade-in on load */
+    .fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Utility Classes */
+    .hidden {
+      display: none !important;
+    }
+
+    /* ----------------------------------------------------
+       3. HOMEPAGE / LANDING VIEW
+       ---------------------------------------------------- */
+    #home-view {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+      background-image: var(--glow-gradient);
+      padding: 20px;
+      z-index: 1;
+    }
+
+    .home-card {
+      background-color: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 40px 48px;
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(0);
+      transition: transform 0.3s ease, border-color var(--transition-speed);
+    }
+
+    .home-card:hover {
+      transform: translateY(-4px);
+    }
+
+    /* Brand styling */
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .logo-icon {
+      font-size: 2.2rem;
+    }
+
+    .logo-text {
+      font-family: var(--font-logo);
+      font-weight: 800;
+      font-size: 2.4rem;
+      background: var(--logo-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin-bottom: 32px;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Form control */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .url-prefix-label {
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      color: var(--text-dim);
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      pointer-events: none;
+      transition: color var(--transition-speed);
+    }
+
+    .pad-input {
+      background-color: var(--bg-input);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 14px 16px 14px 135px; /* Offset to align perfectly after quickpad.net/ */
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      font-weight: 500;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--transition-speed), background-color var(--transition-speed);
+    }
+
+    .pad-input:focus {
+      border-color: var(--accent-color);
+      background-color: var(--bg-base);
+    }
+
+    .go-btn {
+      background: var(--logo-gradient);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: opacity 0.2s ease, transform 0.1s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .go-btn:hover {
+      opacity: 0.95;
+    }
+
+    .go-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Theme toggle on home screen */
+    .home-theme-toggle {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+    }
+
+    /* ----------------------------------------------------
+       4. NOTEPAD WORKSPACE VIEW
+       ---------------------------------------------------- */
+    #pad-view {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+      background-color: var(--bg-workspace);
+    }
+
+    /* Top Bar */
+    .top-bar {
+      height: 56px;
+      min-height: 56px;
+      background-color: var(--bg-topbar);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 10;
+      box-shadow: var(--shadow-sm);
+      transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Minimal Topbar Logo */
+    .mini-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .mini-logo-text {
+      font-family: var(--font-logo);
+      font-weight: 700;
+      font-size: 1.25rem;
+      background: var(--logo-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    /* URL sharing bar */
+    .share-container {
+      display: flex;
+      align-items: center;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 3px;
+      margin-left: 8px;
+      transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    }
+
+    .share-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      width: 160px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .share-input:focus {
+      color: var(--text-main);
+    }
+
+    .btn-action {
+      background-color: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 5px 8px;
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+    }
+
+    .btn-action:hover {
+      background-color: var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-action svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* Actions Right */
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Sync status indicator */
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #64748b;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* Status dot styles */
+    .status-synced {
+      background-color: #10b981; /* Green */
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .status-saving {
+      background-color: #f59e0b; /* Yellow */
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    .status-offline {
+      background-color: #ef4444; /* Red */
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    }
+
+    .status-demo {
+      background-color: #3b82f6; /* Blue for local */
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* Rounded Toggle Button style */
+    .round-btn {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color var(--transition-speed), border-color var(--transition-speed), transform 0.15s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .round-btn:hover {
+      background-color: var(--border-color);
+      transform: scale(1.05);
+    }
+
+    .round-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Editor Canvas */
+    .editor-container {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      background-color: var(--bg-workspace);
+      color: var(--text-main);
+      font-family: var(--font-editor);
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 24px;
+      transition: background-color var(--transition-speed), color var(--transition-speed);
+      overflow-y: auto;
+    }
+
+    /* Bottom Bar */
+    .bottom-bar {
+      height: 36px;
+      min-height: 36px;
+      background-color: var(--bg-bottombar);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      z-index: 10;
+      font-weight: 500;
+      transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    }
+
+    .stats-info {
+      display: flex;
+      gap: 16px;
+    }
+
+    .clear-btn {
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: color var(--transition-speed);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .clear-btn:hover {
+      color: #ef4444;
+      background-color: rgba(239, 68, 68, 0.08);
+    }
+
+    /* ----------------------------------------------------
+       5. ALERTS AND FLOATING BANNERS
+       ---------------------------------------------------- */
+    .alert-banner {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      z-index: 100;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .alert-banner.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .alert-offline {
+      background-color: rgba(239, 68, 68, 0.9);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #ffffff;
+    }
+
+    .alert-demo {
+      background-color: rgba(37, 99, 235, 0.9);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      color: #ffffff;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* ----------------------------------------------------
+       6. RESPONSIVE MEDIA QUERIES
+       ---------------------------------------------------- */
+    @media (max-width: 640px) {
+      .home-card {
+        padding: 30px 24px;
+      }
+      .pad-input {
+        padding-left: 125px; /* Adjust padding on small devices */
+      }
+      .top-bar {
+        padding: 0 12px;
+      }
+      .mini-logo-text {
+        display: none; /* Hide logo text on tiny devices to fit input */
+      }
+      .share-input {
+        width: 110px;
+      }
+      .sync-status span {
+        display: none; /* Hide "Synced" status word, dot is enough */
+      }
+      .editor {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body class="theme-light fade-in">
+
+  <!-- ====================================================
+       VIEW 1: LANDING PAGE (HOMEPAGE)
+       ==================================================== -->
+  <div id="home-view" class="fade-in">
+    <!-- Theme Toggle at top right -->
+    <div class="home-theme-toggle">
+      <button class="round-btn" id="home-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
+        <!-- Sun Icon (Default) -->
+        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.01c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+        <!-- Moon Icon (Hidden initially) -->
+        <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10C2.2 6.8 6.4 2.5 11.8 2c.5 0 .9.3 1.1.7.2.4.1.9-.2 1.2-2 1.9-3.2 4.6-3.2 7.6 0 5.2 4.2 9.4 9.4 9.4 2.5 0 4.9-.9 6.7-2.6.3-.3.8-.4 1.2-.2.4.2.7.6.7 1.1-.5 5-4.6 9-9.5 9z"/></svg>
+      </button>
+    </div>
+
+    <!-- Home Card Container -->
+    <div class="home-card">
+      <div class="logo-container">
+        <span class="logo-icon">📝</span>
+        <h1 class="logo-text">QuickPad</h1>
+      </div>
+      <p class="tagline">Minimalist real-time shared notepad. No login, no signup, saves automatically as you type.</p>
+
+      <form id="navigate-form" class="input-group">
+        <span class="url-prefix-label" id="home-url-prefix">quickpad.net/</span>
+        <input 
+          type="text" 
+          id="pad-name-input" 
+          class="pad-input" 
+          placeholder="enter-pad-name" 
+          required 
+          autocomplete="off" 
+          autofocus
+          pattern="^[a-zA-Z0-9-_]+$"
+          title="Letters, numbers, dashes and underscores only"
+        >
+        <button type="submit" class="go-btn">
+          Go to Pad
+          <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-8.15-1.42 1.42L16.86 11H5v2z"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ====================================================
+       VIEW 2: WORKSPACE (NOTEPAD ACTIVE)
+       ==================================================== -->
+  <div id="pad-view" class="hidden">
+    <!-- Top Nav Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <!-- Clicking this brings you back to / -->
+        <a class="mini-logo" id="header-logo" href="/" title="Go back home">
+          <span class="logo-icon">📝</span>
+          <span class="mini-logo-text">QuickPad</span>
+        </a>
+
+        <!-- Shareable Link display with quick-copy -->
+        <div class="share-container" title="Click URL to select all">
+          <input type="text" id="share-link-input" class="share-input" readonly>
+          <button class="btn-action" id="copy-btn" title="Copy link to clipboard">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <!-- Realtime Status Indicator -->
+        <div class="sync-status">
+          <div class="status-dot status-demo" id="sync-dot"></div>
+          <span id="sync-text">Demo Mode</span>
+        </div>
+
+        <!-- Dark Mode persistence toggle -->
+        <button class="round-btn" id="workspace-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.01c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+          <svg class="moon-icon hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10C2.2 6.8 6.4 2.5 11.8 2c.5 0 .9.3 1.1.7.2.4.1.9-.2 1.2-2 1.9-3.2 4.6-3.2 7.6 0 5.2 4.2 9.4 9.4 9.4 2.5 0 4.9-.9 6.7-2.6.3-.3.8-.4 1.2-.2.4.2.7.6.7 1.1-.5 5-4.6 9-9.5 9z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Centered Canvas Container -->
+    <div class="editor-container">
+      <textarea 
+        id="notepad-textarea" 
+        class="editor" 
+        placeholder="Start typing… share this URL with anyone to collaborate." 
+        spellcheck="false"
+        disabled
+      ></textarea>
+    </div>
+
+    <!-- Bottom Info Bar -->
+    <footer class="bottom-bar">
+      <div class="stats-info">
+        <span id="char-count">0 characters</span>
+        <span id="word-count">0 words</span>
+      </div>
+      <button class="clear-btn" id="clear-btn" title="Delete all content">Clear Notepad</button>
+    </footer>
+  </div>
+
+  <!-- Floating Banners -->
+  <div id="offline-banner" class="alert-banner alert-offline">
+    ⚠️ You appear to be offline. Changes won't sync until reconnected.
+  </div>
+  <div id="demo-banner" class="alert-banner alert-demo">
+    ℹ️ Demo Mode: Connect Firebase inside `index.html` to enable real-time collaboration.
+  </div>
+
+  <!-- ====================================================
+       7. LOGIC AND REAL-TIME SYNC ENGINE
+       ==================================================== -->
+  <script type="module">
+    /* ----------------------------------------------------
+       A. USER CONFIGURATION: ENTER YOUR FIREBASE KEYS HERE
+       ---------------------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBRoYrcOBYWFrDR-AS8k_LuC0EbDsanFF8",
+      authDomain: "quickpad-b4e5a.firebaseapp.com",
+      databaseURL: "https://quickpad-b4e5a-default-rtdb.firebaseio.com", // Standard default database URL. Adjust if your DB was created in EU or Asia.
+      projectId: "quickpad-b4e5a",
+      storageBucket: "quickpad-b4e5a.firebasestorage.app",
+      messagingSenderId: "377493155965",
+      appId: "1:377493155965:web:c46d6fe6d1022f9644c114",
+      measurementId: "G-5ZRMCXB78N"
+    };
+
+    // Auto-detect if this is the default placeholder config
+    const isFirebaseSetup = 
+      firebaseConfig.apiKey && 
+      firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" && 
+      firebaseConfig.apiKey.trim() !== "";
+
+    /* ----------------------------------------------------
+       B. FIREBASE MODULE IMPORTS (CDN)
+       ---------------------------------------------------- */
+    let db, auth;
+    let initializeApp, getDatabase, ref, onValue, set, onDisconnect;
+    let getAuth, signInAnonymously, onAuthStateChanged;
+
+    if (isFirebaseSetup) {
+      try {
+        // Load modules dynamically only if config is updated to keep demo mode completely clean
+        const firebaseAppModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+        const firebaseDbModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+        const firebaseAuthModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+
+        initializeApp = firebaseAppModule.initializeApp;
+        getDatabase = firebaseDbModule.getDatabase;
+        ref = firebaseDbModule.ref;
+        onValue = firebaseDbModule.onValue;
+        set = firebaseDbModule.set;
+        onDisconnect = firebaseDbModule.onDisconnect;
+
+        getAuth = firebaseAuthModule.getAuth;
+        signInAnonymously = firebaseAuthModule.signInAnonymously;
+        onAuthStateChanged = firebaseAuthModule.onAuthStateChanged;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+        auth = getAuth(app);
+      } catch (err) {
+        console.error("Firebase module loading or configuration failed:", err);
+      }
+    }
+
+    /* ----------------------------------------------------
+       C. APPLICATION STATE & VARIABLES
+       ---------------------------------------------------- */
+    let currentPadId = null;
+    let isSaving = false;
+    let debounceTimer = null;
+    let currentLocalValue = "";
+    let skipNextFirebaseUpdate = false;
+    let unsyncedLocalChanges = false;
+
+    // DOM Elements
+    const homeView = document.getElementById("home-view");
+    const padView = document.getElementById("pad-view");
+    const padNameInput = document.getElementById("pad-name-input");
+    const navigateForm = document.getElementById("navigate-form");
+    const headerLogo = document.getElementById("header-logo");
+    const shareLinkInput = document.getElementById("share-link-input");
+    const copyBtn = document.getElementById("copy-btn");
+    const notepadTextarea = document.getElementById("notepad-textarea");
+    const clearBtn = document.getElementById("clear-btn");
+    const syncDot = document.getElementById("sync-dot");
+    const syncText = document.getElementById("sync-text");
+    const charCountEl = document.getElementById("char-count");
+    const wordCountEl = document.getElementById("word-count");
+    const homeToggleBtn = document.getElementById("home-toggle-btn");
+    const workspaceToggleBtn = document.getElementById("workspace-toggle-btn");
+    
+    // Floating alerts
+    const offlineBanner = document.getElementById("offline-banner");
+    const demoBanner = document.getElementById("demo-banner");
+
+    // Dynamic prefixes based on current context
+    const setHomeUrlPrefix = () => {
+      const host = window.location.host || "quickpad.net";
+      document.getElementById("home-url-prefix").textContent = `${host}/`;
+    };
+    setHomeUrlPrefix();
+
+    /* ----------------------------------------------------
+       D. THEME / DARK MODE MANAGER
+       ---------------------------------------------------- */
+    function initTheme() {
+      const savedTheme = localStorage.getItem("quickpad-theme") || "light";
+      setTheme(savedTheme);
+    }
+
+    function setTheme(theme) {
+      if (theme === "dark") {
+        document.body.classList.remove("theme-light");
+        document.body.classList.add("theme-dark");
+        // Update both toggle buttons visually
+        document.querySelectorAll(".sun-icon").forEach(el => el.classList.add("hidden"));
+        document.querySelectorAll(".moon-icon").forEach(el => el.classList.remove("hidden"));
+        localStorage.setItem("quickpad-theme", "dark");
+      } else {
+        document.body.classList.remove("theme-dark");
+        document.body.classList.add("theme-light");
+        document.querySelectorAll(".sun-icon").forEach(el => el.classList.remove("hidden"));
+        document.querySelectorAll(".moon-icon").forEach(el => el.classList.add("hidden"));
+        localStorage.setItem("quickpad-theme", "light");
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.body.classList.contains("theme-dark");
+      setTheme(isDark ? "light" : "dark");
+    }
+
+    homeToggleBtn.addEventListener("click", toggleTheme);
+    workspaceToggleBtn.addEventListener("click", toggleTheme);
+
+    /* ----------------------------------------------------
+       E. CLIENT-SIDE ROUTER (SPA WITH HASH FALLBACK)
+       ---------------------------------------------------- */
+    // Helper to identify the current pad ID from pathname or hash
+    function getPadIdFromUrl() {
+      // 1. First choice: hash routing fallback (necessary for file:// or standard strict folders)
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        return decodeURIComponent(hash.substring(1).replace(/^\//, ''));
+      }
+      
+      // 2. Second choice: standard pathname
+      const path = window.location.pathname;
+      if (path && path !== '/' && path !== '/index.html') {
+        return decodeURIComponent(path.substring(1));
+      }
+      
+      return null;
+    }
+
+    // High fidelity router state manager
+    function route() {
+      const padId = getPadIdFromUrl();
+      if (padId) {
+        // Clean padId of any unwanted leading/trailing slashes
+        const cleanedId = padId.trim().replace(/^\/+|\/+$/g, '');
+        if (cleanedId) {
+          loadPad(cleanedId);
+          return;
+        }
+      }
+      showHomepage();
+    }
+
+    function showHomepage() {
+      currentPadId = null;
+      document.title = "QuickPad — Minimalist Real-time Shared Notepad";
+      
+      padView.classList.add("hidden");
+      homeView.classList.remove("hidden");
+      padNameInput.value = "";
+      padNameInput.focus();
+      notepadTextarea.disabled = true;
+      demoBanner.classList.remove("show");
+    }
+
+    function loadPad(padId) {
+      currentPadId = padId;
+      document.title = `QuickPad — /${padId}`;
+      
+      homeView.classList.add("hidden");
+      padView.classList.remove("hidden");
+      notepadTextarea.disabled = false;
+      notepadTextarea.focus();
+
+      // Configure topbar URL input
+      const fullUrl = getSharedUrl(padId);
+      shareLinkInput.value = fullUrl;
+
+      // Initialize workspace text and synchronization
+      notepadTextarea.value = "";
+      updateStats("");
+
+      if (isFirebaseSetup) {
+        initializeFirebaseSync(padId);
+      } else {
+        initializeLocalDemoSync(padId);
+      }
+    }
+
+    // Clean address URL constructor
+    function getSharedUrl(padId) {
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      const path = window.location.pathname;
+
+      if (protocol === "file:") {
+        // If file system, preserve page path and append hash
+        return `${window.location.href.split('#')[0]}#${padId}`;
+      } else {
+        // If live web server
+        return `${protocol}//${host}/${padId}`;
+      }
+    }
+
+    // Handles Navigation Forms
+    navigateForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      let val = padNameInput.value.trim().toLowerCase();
+      // Remove any problematic slash characters
+      val = val.replace(/\//g, '');
+      if (val) {
+        const protocol = window.location.protocol;
+        if (protocol === "file:") {
+          // File system must use hash
+          window.location.hash = `#${val}`;
+        } else {
+          // Web system uses smooth history API
+          history.pushState(null, '', `/${val}`);
+          route();
+        }
+      }
+    });
+
+    // Logo redirection
+    headerLogo.addEventListener("click", (e) => {
+      e.preventDefault();
+      const protocol = window.location.protocol;
+      if (protocol === "file:") {
+        window.location.hash = "";
+      } else {
+        history.pushState(null, '', '/');
+        route();
+      }
+    });
+
+    // History Nav Popstate Listener
+    window.addEventListener("popstate", route);
+    // Listen for hashchange events for file fallback
+    window.addEventListener("hashchange", route);
+
+    /* ----------------------------------------------------
+       F. LOCAL DEMO ENGINE (FALLBACK SYSTEM)
+       ---------------------------------------------------- */
+    function initializeLocalDemoSync(padId) {
+      updateSyncStatus("demo");
+      
+      // Load from localStorage
+      const cached = localStorage.getItem(`quickpad_${padId}`) || "";
+      notepadTextarea.value = cached;
+      currentLocalValue = cached;
+      updateStats(cached);
+
+      // Trigger standard floating demo mode notification
+      demoBanner.classList.add("show");
+    }
+
+    function saveLocalChanges(text) {
+      if (!currentPadId) return;
+      
+      updateSyncStatus("saving");
+      
+      if (debounceTimer) clearTimeout(debounceTimer);
+      
+      debounceTimer = setTimeout(() => {
+        localStorage.setItem(`quickpad_${currentPadId}`, text);
+        currentLocalValue = text;
+        updateSyncStatus("synced");
+      }, 500);
+    }
+
+    /* ----------------------------------------------------
+       G. REAL-TIME SYNC LOGIC (FIREBASE RTDB ENGINE)
+       ---------------------------------------------------- */
+    let activeFirebaseListener = null;
+
+    function initializeFirebaseSync(padId) {
+      updateSyncStatus("saving"); // Initial load state
+      demoBanner.classList.remove("show");
+
+      // Verify anonymous login
+      signInAnonymously(auth)
+        .then(() => {
+          // Clean previous sync subscriptions if any
+          if (activeFirebaseListener) {
+            activeFirebaseListener();
+          }
+
+          const padRef = ref(db, `pads/${padId}/content`);
+
+          // Start Listening to Firebase Node updates
+          activeFirebaseListener = onValue(padRef, (snapshot) => {
+            const serverValue = snapshot.val();
+            const text = serverValue !== null ? serverValue : "";
+            
+            // Check if we should override local value
+            if (skipNextFirebaseUpdate) {
+              skipNextFirebaseUpdate = false;
+              return;
+            }
+
+            if (text !== notepadTextarea.value) {
+              const selectionStart = notepadTextarea.selectionStart;
+              const selectionEnd = notepadTextarea.selectionEnd;
+              const isFocused = document.activeElement === notepadTextarea;
+
+              notepadTextarea.value = text;
+              currentLocalValue = text;
+              updateStats(text);
+
+              // Maintain typing cursors gracefully
+              if (isFocused) {
+                notepadTextarea.setSelectionRange(selectionStart, selectionEnd);
+              }
+            }
+
+            updateSyncStatus("synced");
+          }, (error) => {
+            console.error("Database connection error:", error);
+            updateSyncStatus("offline");
+          });
+
+          // Establish Offline Status Listener
+          const connectedRef = ref(db, ".info/connected");
+          onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+              offlineBanner.classList.remove("show");
+              if (!isSaving) updateSyncStatus("synced");
+            } else {
+              offlineBanner.classList.add("show");
+              updateSyncStatus("offline");
+            }
+          });
+        })
+        .catch((error) => {
+          console.error("Auth sign-in anonymous failed:", error);
+          updateSyncStatus("offline");
+          offlineBanner.classList.add("show");
+        });
+    }
+
+    function saveFirebaseChanges(text) {
+      if (!currentPadId) return;
+
+      isSaving = true;
+      updateSyncStatus("saving");
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      debounceTimer = setTimeout(() => {
+        const padRef = ref(db, `pads/${currentPadId}/content`);
+        
+        // Prevent next onValue read from wiping current text cursor
+        skipNextFirebaseUpdate = true;
+
+        set(padRef, text)
+          .then(() => {
+            isSaving = false;
+            currentLocalValue = text;
+            updateSyncStatus("synced");
+          })
+          .catch((error) => {
+            console.error("Failed to sync change:", error);
+            isSaving = false;
+            skipNextFirebaseUpdate = false;
+            updateSyncStatus("offline");
+          });
+      }, 500);
+    }
+
+    /* ----------------------------------------------------
+       H. EDITOR INTERACTIVITY & TEXT UTILS
+       ---------------------------------------------------- */
+    // Textarea content modifications
+    notepadTextarea.addEventListener("input", (e) => {
+      const text = e.target.value;
+      updateStats(text);
+
+      if (isFirebaseSetup) {
+        saveFirebaseChanges(text);
+      } else {
+        saveLocalChanges(text);
+      }
+    });
+
+    // Clear Screen button
+    clearBtn.addEventListener("click", () => {
+      if (confirm("Are you absolutely sure you want to clear this notepad? This cannot be undone.")) {
+        notepadTextarea.value = "";
+        updateStats("");
+        notepadTextarea.focus();
+
+        if (isFirebaseSetup) {
+          saveFirebaseChanges("");
+        } else {
+          saveLocalChanges("");
+        }
+      }
+    });
+
+    // Character and Word counter
+    function updateStats(text) {
+      const charCount = text.length;
+      
+      // Clean leading/trailing spaces for accurate word count
+      const trimmed = text.trim();
+      const wordCount = trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+
+      charCountEl.textContent = `${charCount} ${charCount === 1 ? 'character' : 'characters'}`;
+      wordCountEl.textContent = `${wordCount} ${wordCount === 1 ? 'word' : 'words'}`;
+    }
+
+    // Sync Status DOT states updates
+    function updateSyncStatus(status) {
+      syncDot.className = "status-dot";
+      
+      if (status === "synced") {
+        syncDot.classList.add("status-synced");
+        syncText.textContent = "Synced";
+      } else if (status === "saving") {
+        syncDot.classList.add("status-saving");
+        syncText.textContent = "Saving...";
+      } else if (status === "offline") {
+        syncDot.classList.add("status-offline");
+        syncText.textContent = "Offline";
+      } else if (status === "demo") {
+        syncDot.classList.add("status-demo");
+        syncText.textContent = "Demo Mode";
+      }
+    }
+
+    // Sharing input selections helper
+    shareLinkInput.addEventListener("click", function() {
+      this.select();
+    });
+
+    // Copy to clipboard actions
+    copyBtn.addEventListener("click", () => {
+      shareLinkInput.select();
+      shareLinkInput.setSelectionRange(0, 99999); /* For mobile devices */
+
+      try {
+        navigator.clipboard.writeText(shareLinkInput.value)
+          .then(showCopySuccess)
+          .catch(fallbackCopy);
+      } catch (err) {
+        fallbackCopy();
+      }
+    });
+
+    function showCopySuccess() {
+      const originalText = copyBtn.querySelector("span").textContent;
+      copyBtn.querySelector("span").textContent = "Copied!";
+      copyBtn.style.color = "var(--accent-color)";
+      
+      setTimeout(() => {
+        copyBtn.querySelector("span").textContent = originalText;
+        copyBtn.style.color = "";
+      }, 1500);
+    }
+
+    function fallbackCopy() {
+      document.execCommand("copy");
+      showCopySuccess();
+    }
+
+    /* ----------------------------------------------------
+       I. INITIALIZATION ON RUNTIME
+       ---------------------------------------------------- */
+    initTheme();
+    route();
+
+  </script>
+</body>
+</html>

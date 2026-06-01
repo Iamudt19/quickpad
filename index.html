@@ -179,39 +179,51 @@
     .input-group {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      position: relative;
+      gap: 16px;
     }
 
-    .url-prefix-label {
-      position: absolute;
-      left: 16px;
-      top: 14px;
-      color: var(--text-dim);
-      font-family: var(--font-ui);
-      font-size: 0.95rem;
-      pointer-events: none;
-      transition: color var(--transition-speed);
-    }
-
-    .pad-input {
+    .input-wrapper {
+      display: flex;
+      align-items: center;
       background-color: var(--bg-input);
       border: 1px solid transparent;
       border-radius: 12px;
-      padding: 14px 16px 14px 135px; /* Offset to align perfectly after quickpad.net/ */
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--transition-speed), background-color var(--transition-speed);
+      overflow: hidden;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent-color);
+      background-color: var(--bg-base);
+    }
+
+    .url-prefix-label {
+      color: var(--text-muted);
+      font-family: var(--font-ui);
+      font-weight: 500;
+      font-size: 0.95rem;
+      user-select: none;
+      white-space: nowrap;
+      border-right: 1px solid var(--border-color);
+      padding-right: 12px;
+      margin-right: 12px;
+      transition: color var(--transition-speed), border-color var(--transition-speed);
+    }
+
+    .pad-input {
+      background: transparent;
+      border: none;
+      outline: none;
       color: var(--text-main);
       font-family: var(--font-ui);
       font-weight: 500;
       font-size: 0.95rem;
       width: 100%;
-      outline: none;
-      box-shadow: var(--shadow-sm);
-      transition: border-color var(--transition-speed), background-color var(--transition-speed);
-    }
-
-    .pad-input:focus {
-      border-color: var(--accent-color);
-      background-color: var(--bg-base);
+      padding: 0;
+      box-shadow: none;
+      transition: color var(--transition-speed);
     }
 
     .go-btn {
@@ -569,9 +581,6 @@
       .home-card {
         padding: 30px 24px;
       }
-      .pad-input {
-        padding-left: 125px; /* Adjust padding on small devices */
-      }
       .top-bar {
         padding: 0 12px;
       }
@@ -586,6 +595,12 @@
       }
       .editor {
         padding: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .url-prefix-label {
+        display: none;
       }
     }
   </style>
@@ -615,18 +630,20 @@
       <p class="tagline">Minimalist real-time shared notepad. No login, no signup, saves automatically as you type.</p>
 
       <form id="navigate-form" class="input-group">
-        <span class="url-prefix-label" id="home-url-prefix">quickpad.net/</span>
-        <input 
-          type="text" 
-          id="pad-name-input" 
-          class="pad-input" 
-          placeholder="enter-pad-name" 
-          required 
-          autocomplete="off" 
-          autofocus
-          pattern="^[a-zA-Z0-9-_]+$"
-          title="Letters, numbers, dashes and underscores only"
-        >
+        <div class="input-wrapper">
+          <span class="url-prefix-label" id="home-url-prefix">quickpad.net/</span>
+          <input 
+            type="text" 
+            id="pad-name-input" 
+            class="pad-input" 
+            placeholder="enter-pad-name" 
+            required 
+            autocomplete="off" 
+            autofocus
+            pattern="^[a-zA-Z0-9-_]+$"
+            title="Letters, numbers, dashes and underscores only"
+          >
+        </div>
         <button type="submit" class="go-btn">
           Go to Pad
           <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-8.15-1.42 1.42L16.86 11H5v2z"/></svg>
